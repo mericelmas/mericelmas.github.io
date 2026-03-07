@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPSS B-Grubu Hazırlık Portalı | Meriç Elmas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="hero">
+        <div class="container">
+            <h1>KPSS B-Grubu Hazırlık Portalı</h1>
+            <p>Genel Yetenek & Genel Kültür (P3) Uygulamaları</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="apps-section">
+            <div class="section-header">
+                <h2>Uygulamalar</h2>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Uygulama ara (isim veya açıklama)..." aria-label="Uygulama ara">
+                </div>
+            </div>
+            <div id="apps-grid" class="apps-grid">
+                <!-- Apps will be injected here by JS -->
+                <p id="loading">Uygulamalar yükleniyor...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- App Details Modal -->
+    <div id="app-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="modal-close" class="modal-close">&times;</span>
+            <h2 id="modal-title" class="modal-title"></h2>
+            <p id="modal-desc" class="modal-desc"></p>
+            
+            <div id="modal-features-container" class="modal-section">
+                <h3 class="modal-section-title">Özellikler (Features)</h3>
+                <ul id="modal-features" class="modal-features-list"></ul>
+            </div>
+            
+            <div id="modal-author-container" class="modal-section">
+                <h3 class="modal-section-title">Geliştirici (Author)</h3>
+                <p id="modal-author" class="modal-author-text"></p>
+            </div>
+            
+            <a id="modal-launch" href="#" class="modal-launch-btn">Uygulamayı Başlat</a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Meriç Elmas. Başarılar dilerim!</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const appsGrid = document.getElementById('apps-grid');
+            const searchInput = document.getElementById('search-input');
+            const modal = document.getElementById('app-modal');
+            const modalClose = document.getElementById('modal-close');
+            const modalTitle = document.getElementById('modal-title');
+            const modalDesc = document.getElementById('modal-desc');
+            const modalFeaturesContainer = document.getElementById('modal-features-container');
+            const modalFeatures = document.getElementById('modal-features');
+            const modalAuthorContainer = document.getElementById('modal-author-container');
+            const modalAuthor = document.getElementById('modal-author');
+            const modalLaunch = document.getElementById('modal-launch');
+            let allApps = [];
+
+            function openModal(app) {
+                modalTitle.textContent = app.name;
+                modalDesc.textContent = app.description || 'Açıklama bulunmuyor.';
+                
+                // Populate Features
+                if (app.features && app.features.length > 0) {
+                    modalFeatures.innerHTML = app.features.map(f => `<li>${f}</li>`).join('');
+                    modalFeaturesContainer.style.display = 'block';
+                } else {
+                    modalFeaturesContainer.style.display = 'none';
+                }
+                
+                // Populate Author
+                if (app.author) {
+                    modalAuthor.textContent = typeof app.author === 'string' ? app.author : (app.author.name || 'Bilinmeyen Geliştirici');
+                    modalAuthorContainer.style.display = 'block';
+                } else {
+                    modalAuthorContainer.style.display = 'none';
+                }
+                
+                modalLaunch.href = `/${app.folder}/`;
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+            }
+
+            modalClose.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+
+            function renderApps(appsToRender) {
+                appsGrid.innerHTML = '';
+                if (appsToRender.length === 0) {
+                    appsGrid.innerHTML = '<p>Arama kriterlerine uygun uygulama bulunamadı.</p>';
+                    return;
+                }
+
+                appsToRender.forEach(app => {
+                    const card = document.createElement('div');
+                    card.className = 'app-card';
+                    
+                    // Add theme class based on category
+                    const category = app.category ? app.category.toLowerCase() : '';
+                    const tag = document.createElement('span');
+                    tag.className = 'app-tag';
+                    
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = 'app-icon-wrapper';
+                    
+                    if (category === 'genel kültür' || category === 'gk') {
+                        card.classList.add('theme-gk');
+                        tag.classList.add('tag-gk');
+                        tag.textContent = 'GK';
+                        iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="app-icon icon-gk"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>`;
+                    } else {
+                        card.classList.add('theme-gy'); // Default to GY
+                        tag.classList.add('tag-gy');
+                        tag.textContent = 'GY';
+                        iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="app-icon icon-gy"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`;
+                    }
+                    
+                    card.style.cursor = 'pointer';
+                    card.addEventListener('click', () => openModal(app));
+                    
+                    const title = document.createElement('h3');
+                    title.textContent = app.name;
+                    
+                    const desc = document.createElement('p');
+                    desc.className = 'app-desc';
+                    desc.textContent = app.description || 'Açıklama bulunmuyor.';
+                    
+                    card.appendChild(tag);
+                    card.appendChild(iconContainer);
+                    card.appendChild(title);
+                    card.appendChild(desc);
+                    appsGrid.appendChild(card);
+                });
+            }
+
+            try {
+                const response = await fetch('apps.json');
+                if (!response.ok) throw new Error('apps.json bulunamadı');
+                allApps = await response.json();
+                
+                renderApps(allApps);
+
+                // Debounce utility function
+                function debounce(func, wait) {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                }
+
+                const handleSearch = debounce((e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const filteredApps = allApps.filter(app => 
+                        app.name.toLowerCase().includes(searchTerm) || 
+                        (app.description && app.description.toLowerCase().includes(searchTerm))
+                    );
+                    renderApps(filteredApps);
+                }, 300);
+
+                searchInput.addEventListener('input', handleSearch);
+            } catch (error) {
+                appsGrid.innerHTML = '<p>Uygulamalar yüklenirken bir hata oluştu veya henüz apps.json oluşturulmadı.</p>';
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
