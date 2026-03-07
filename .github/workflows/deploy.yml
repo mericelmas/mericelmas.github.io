@@ -1,0 +1,84 @@
+name: Deploy KPSS Portal to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.3.0
+        with:
+          node-version: '20'
+
+      - name: Generate apps.json Index
+        run: node scripts/build-index.js
+
+      - name: Build React Apps
+        run: |
+          # Create a final dist directory
+          mkdir -p dist
+          
+          # Copy root homepage files
+          cp index.html dist/
+          cp styles.css dist/
+          cp apps.json dist/
+          
+          # Iterate through apps.json to build each app
+          if [ -f apps.json ]; then
+            APPS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('apps.json')).map(a => a.folder).join(' '))")
+            for APP in $APPS; do
+              echo "Building $APP..."
+              cd $APP
+              npm ci
+              npm run build
+              cd ..
+              
+              # Move build output to dist/app-name
+              # Assuming standard Vite/CRA build folders (dist or build)
+              if [ -d "$APP/dist" ]; then
+                cp -r $APP/dist dist/$APP
+              elif [ -d "$APP/build" ]; then
+                cp -r $APP/build dist/$APP
+              else
+                echo "Warning: No build directory found for $APP"
+              fi
+            done
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: './dist'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
